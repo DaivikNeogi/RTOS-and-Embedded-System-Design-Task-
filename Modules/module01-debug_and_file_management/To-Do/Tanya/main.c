@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include "sensor.h"
 #include "battery.h"
-#include "fake_mcu.h"
+#include "system.h"
 #include <unistd.h>
 
 int main(void){
-	MCU_Init();
+	system_init();
 
 	while(1){
 		int sensor = SensorVal();
