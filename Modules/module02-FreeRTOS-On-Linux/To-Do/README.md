@@ -1,145 +1,168 @@
-# Module 02 Task - FreeRTOS Task Scheduling and Priorities
+# Module 02 - FreeRTOS Tasks and Safety Monitoring
+
+## Lesson Objectives
+
+This module builds upon concepts introduced in Module 01.
+
+### Concepts from Previous Module
+
+* Abstraction
+* Layered Software Architecture
+* Separation of Application and Hardware Layers
+
+### New Concepts
+
+* FreeRTOS Tasks
+* Task Priorities
+* Task Scheduling
+* Blocking with `vTaskDelay()`
+* Safety Monitoring
+
+---
 
 ## Objective
 
-In embedded systems, multiple activities often need to run at the same time.
+The objective of this exercise is to run a FreeRTOS application using the provided files and implement the required functionality using FreeRTOS tasks.
 
-Examples include:
-
-* Reading sensors
-* Monitoring battery voltage
-* Sending telemetry
-* Controlling motors
-
-A Real-Time Operating System (RTOS) allows these activities to be split into independent tasks and scheduled according to their priority.
-
-Your task is to create a simple FreeRTOS application that demonstrates task scheduling, blocking, and preemption using multiple tasks.
+You must build upon the architecture created in the previous module.
 
 ---
 
-# Problem Statement
+## Problem Statement
 
-You are developing a simplified embedded controller.
+In Module 01, you created software modules that allowed the application layer to access hardware functionality without directly interacting with the MCU layer.
 
-The controller performs three independent functions:
+The system currently provides:
 
-1. Periodically reading sensors
-2. Monitoring system health
-3. Handling emergency checks
+* Sensor readings
+* Battery monitoring
 
-Each function should execute in its own FreeRTOS task.
+In many embedded systems, monitoring data is not sufficient. The software must also continuously check for safety-related conditions and respond appropriately.
+
+Your task is to convert the existing application into a FreeRTOS-based application and introduce a new safety monitoring task.
 
 ---
 
-# Requirements
+## Existing Modules
 
-Create the following tasks:
+You should reuse the modules created in the previous exercise.
+
+Examples:
+
+```text
+sensor.c
+sensor.h
+
+battery.c
+battery.h
+```
+
+These modules should continue to be used by the application tasks.
+
+---
+
+## New Requirement
+
+Create a new module:
+
+```text
+emergency.c
+emergency.h
+```
+
+This module will be responsible for checking the system status.
+
+The MCU layer provides the following API:
+
+```c
+MCU_ReadStatusRegister();
+```
+
+Use this API inside your new module.
+
+The application layer must access status information through:
+
+```c
+EmergencyStatus();
+```
+
+or an equivalent interface designed by you.
+
+---
+
+## Important Rule
+
+The application layer must not directly include:
+
+```c
+fake_mcu.h
+```
+
+The application layer must not directly call:
+
+```c
+MCU_ReadADC();
+MCU_ReadBatteryVoltage();
+MCU_ReadStatusRegister();
+```
+
+Application tasks must only interact with higher-level modules such as:
+
+```text
+sensor.c
+battery.c
+emergency.c
+```
+
+---
+
+## Required Tasks
+
+Create the following FreeRTOS tasks:
 
 ```text
 SensorTask
-HealthMonitorTask
+BatteryTask
 EmergencyTask
 ```
 
 ---
 
-## Sensor Task
+### SensorTask
 
-This task represents a sensor acquisition system.
+This task should periodically read sensor data using the existing sensor module.
 
-The task should:
+---
+
+### BatteryTask
+
+This task should periodically read battery information using the existing battery module.
+
+---
+
+### EmergencyTask
+
+This task should periodically check system status using the emergency module.
+
+This task represents a safety monitoring function and must be assigned the highest priority in the system.
+
+---
+
+## Task Priorities
+
+Assign priorities such that:
 
 ```text
-Print: Reading Sensors
-```
-
-and execute periodically every:
-
-```text
-500 ms
-```
-
-using:
-
-```c
-vTaskDelay()
+EmergencyTask     Highest Priority
+SensorTask        Medium Priority
+BatteryTask       Lowest Priority
 ```
 
 ---
 
-## Health Monitor Task
+## FreeRTOS Requirements
 
-This task represents a heartbeat or status LED task commonly found in embedded systems.
-
-The task should:
-
-```text
-Print: System Healthy
-```
-
-and execute periodically every:
-
-```text
-1000 ms
-```
-
-using:
-
-```c
-vTaskDelay()
-```
-
----
-
-## Emergency Task
-
-This task represents a high-priority safety monitoring function.
-
-The task should:
-
-```text
-Print: EMERGENCY CHECK
-```
-
-and execute periodically every:
-
-```text
-3000 ms
-```
-
-using:
-
-```c
-vTaskDelay()
-```
-
-This task must have the highest priority in the system.
-
----
-
-# Task Priorities
-
-Assign priorities as follows:
-
-```text
-EmergencyTask       Highest Priority
-SensorTask          Medium Priority
-HealthMonitorTask   Lowest Priority
-```
-
-Example:
-
-```c
-EmergencyTask       Priority 3
-SensorTask          Priority 2
-HealthMonitorTask   Priority 1
-```
-
----
-
-# Important Rules
-
-All functionality must be implemented using FreeRTOS tasks.
+The application must use FreeRTOS tasks.
 
 The application must not use:
 
@@ -150,7 +173,7 @@ usleep()
 
 or any operating system delay function.
 
-Only FreeRTOS timing functions should be used.
+Use only FreeRTOS timing functions.
 
 Example:
 
@@ -160,259 +183,38 @@ vTaskDelay()
 
 ---
 
-# Architecture
+## Expected Learning Outcomes
 
-The software should follow the structure below:
+After completing this exercise, learners should understand:
 
-```text
-+---------------------------+
-|      Emergency Task       |
-|      Priority Highest     |
-+-------------+-------------+
-              |
-+-------------v-------------+
-|        Sensor Task        |
-|      Priority Medium      |
-+-------------+-------------+
-              |
-+-------------v-------------+
-|    Health Monitor Task    |
-|      Priority Lowest      |
-+---------------------------+
-```
-
----
-
-# Expected Behaviour
-
-When the application runs, all tasks should periodically print messages.
-
-Example output:
-
-```text
-Reading Sensors
-System Healthy
-
-Reading Sensors
-
-EMERGENCY CHECK
-
-Reading Sensors
-System Healthy
-```
-
-Because the Emergency Task has the highest priority, it should immediately run whenever it becomes ready.
-
-Observe the scheduling behaviour and compare it with the lower-priority tasks.
-
----
-
-# Why Are We Doing This?
-
-In embedded systems, not all software activities are equally important.
-
-Examples:
-
-```text
-Motor Control      Critical
-Sensor Reading     Important
-Debug Logging      Non-Critical
-```
-
-An RTOS allows critical tasks to receive CPU time before less important tasks.
-
-This is one of the primary reasons RTOSes are used in embedded systems.
-
----
-
-# Debugging Task
-
-After implementing the application:
-
-1. Build the project.
-2. Run the application.
-3. Use GDB to inspect task execution.
-4. Verify that:
-
-   * All three tasks are created.
-   * Tasks enter the Blocked state after calling vTaskDelay().
-   * Higher-priority tasks execute before lower-priority tasks when they become Ready.
-
-Use breakpoints to observe:
-
-```text
-SensorTask()
-   ↓
-vTaskDelay()
-
-HealthMonitorTask()
-   ↓
-vTaskDelay()
-
-EmergencyTask()
-   ↓
-vTaskDelay()
-```
-
-Observe how task execution changes as different tasks become ready to run.
-
----
-
-# Provided Files
-
-The following files are provided:
-
-```text
-main.c
-FreeRTOSConfig.h
-Makefile
-```
-
-Do not modify the FreeRTOS kernel files.
-
-Your task is to build the application using the FreeRTOS APIs provided.
-
----
-
-# Expected Learning Outcomes
-
-After completing this task, learners should understand:
-
-* Task creation
-* Task priorities
+* Reusing an existing software architecture
+* Creating FreeRTOS tasks
+* Assigning task priorities
 * Task scheduling
-* Task preemption
-* Blocking using vTaskDelay()
-* Basic RTOS architecture
-* Debugging FreeRTOS applications using GDB
+* Task blocking using `vTaskDelay()`
+* Safety monitoring concepts
+* Maintaining abstraction boundaries in embedded software
 
 ---
 
-# Submitting Your Solution
+## Submission
 
-After completing the task, submit your work through GitHub.
+Submit your solution through GitHub.
 
----
+1. Fork the repository
+2. Clone your fork
+3. Implement the required tasks
+4. Commit your changes
+5. Push your work
+6. Open a Pull Request
 
-## Step 1 - Fork the Repository
-
-Create your own copy of the repository using GitHub's Fork feature.
+The Pull Request should describe:
 
 ```text
-Original Repository
-        ↓
-     Fork
-        ↓
-Your GitHub Repository
+Implemented SensorTask
+Implemented BatteryTask
+Implemented EmergencyTask
+Verified task scheduling
+Verified task priorities
+Maintained abstraction boundaries
 ```
-
----
-
-## Step 2 - Clone Your Fork
-
-Clone your fork to your local machine.
-
-Example:
-
-```bash
-git clone <your-fork-url>
-```
-
----
-
-## Step 3 - Create Your Solution
-
-Implement the required FreeRTOS tasks.
-
-Example:
-
-```text
-Module02/
-│
-├── main.c
-├── FreeRTOSConfig.h
-├── Makefile
-│
-└── task implementation
-```
-
----
-
-## Step 4 - Commit Your Changes
-
-Add your files to Git.
-
-```bash
-git add .
-```
-
-Create a commit.
-
-```bash
-git commit -m "Completed Module02 FreeRTOS scheduling task"
-```
-
----
-
-## Step 5 - Push Your Changes
-
-Push the solution to your fork.
-
-```bash
-git push origin main
-```
-
-or
-
-```bash
-git push origin <branch-name>
-```
-
-depending on your workflow.
-
----
-
-## Step 6 - Open a Pull Request
-
-From GitHub:
-
-1. Open your fork.
-2. Click Pull Request.
-3. Compare your changes against the original repository.
-4. Create a Pull Request.
-
-The Pull Request should include:
-
-```text
-Implemented all required tasks
-Configured task priorities
-Verified task scheduling behaviour
-Verified execution using GDB
-```
-
----
-
-# Learning Goal
-
-This exercise introduces the basic workflow of a FreeRTOS application:
-
-```text
-Create Tasks
-      ↓
-Assign Priorities
-      ↓
-Run Scheduler
-      ↓
-Observe Scheduling
-      ↓
-Debug
-      ↓
-Commit
-      ↓
-Push
-      ↓
-Create Pull Request
-```
-
-This workflow forms the foundation for future modules involving queues, semaphores, mutexes, timers, and interrupt-driven systems.
-
