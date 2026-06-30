@@ -39,14 +39,3 @@ This system is designed to run indefinitely without fatal memory degradation.
 * **Static Runtime Heap:** All dynamic allocations (Tasks and Queues) are performed upfront during `main()` before the scheduler starts. 
 * **Copy-by-Value:** Data is passed through the queue using FreeRTOS's native copy-by-value mechanism. No `malloc()` or `free()` calls are made during the infinite `while(1)` execution loops. 
 * **Leak Prevention:** Because the runtime execution does not dynamically allocate or destroy memory, the system is immune to runtime memory leaks and heap fragmentation, resulting in a static and predictable memory footprint during execution.
-
-## Build and Run Instructions
-```bash
-# Generate the build environment
-cmake -B build
-
-# Compile the executable
-cmake --build build
-
-# Run the FreeRTOS Application
-./build/app
